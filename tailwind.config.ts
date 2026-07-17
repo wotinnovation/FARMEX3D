@@ -5,12 +5,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        char: "#140d09",
-        ember: "#ff4d1c",
-        chili: "#d92b04",
-        cream: "#f6e8d2",
-        field: "#5c8a3a",
-        honey: "#f2a33c",
+        char:  "#060e08",   // near-black with deep forest tint
+        ember: "#22c55e",   // vivid green — primary brand accent
+        chili: "#dc2626",   // bold red — heat / spice accent
+        cream: "#f0fdf4",   // light green-white — main text
+        field: "#16a34a",   // forest green — secondary accent
+        honey: "#86efac",   // soft lime — stats / highlights
       },
       fontFamily: {
         display: ["var(--font-display)"],

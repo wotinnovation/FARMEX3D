@@ -3,130 +3,54 @@
 import { Suspense, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useGLTF, useTexture, ContactShadows, Float } from "@react-three/drei";
+import { useGLTF, ContactShadows, Float, Environment } from "@react-three/drei";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const MODEL_URL = "/models/farmex_bottle.glb";
-const TEXTURE_URLS = ["/textures/texture1.jfif", "/textures/texture2.jfif"];
 
 /* ------------------------------------------------------------------ */
-/* Wipe shader — diagonal sweep from top-left to bottom-right         */
+/* Bottle                                                              */
 /* ------------------------------------------------------------------ */
-const vertexShader = /* glsl */ `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
-
-const fragmentShader = /* glsl */ `
-  uniform sampler2D uTexA;
-  uniform sampler2D uTexB;
-  uniform float uProgress;   // 0 = fully A, 1 = fully B
-  varying vec2 vUv;
-
-  void main() {
-    vec4 colA = texture2D(uTexA, vUv);
-    vec4 colB = texture2D(uTexB, vUv);
-
-    // diagonal axis: top-left=0, bottom-right=1
-    float diag = vUv.x * 0.5 + (1.0 - vUv.y) * 0.5;
-
-    // soft wipe edge
-    float blend = smoothstep(uProgress - 0.10, uProgress + 0.10, diag);
-    vec4 color = mix(colA, colB, blend);
-
-    // shimmering glint at the wipe front
-    float dist = abs(diag - uProgress);
-    float glint = 1.0 - smoothstep(0.0, 0.055, dist);
-    // fade glint in/out so it doesn't flash at start or end
-    glint *= smoothstep(0.0, 0.12, uProgress) * smoothstep(1.0, 0.88, uProgress);
-    color.rgb += glint * 2.8;
-
-    gl_FragColor = color;
-  }
-`;
-
-/* ------------------------------------------------------------------ */
-/* Bottle: replaces GLB materials with the wipe shader                */
-/* ------------------------------------------------------------------ */
-function Bottle({
-  uniformsRef,
-}: {
-  uniformsRef: React.MutableRefObject<{
-    uTexA: THREE.IUniform<THREE.Texture>;
-    uTexB: THREE.IUniform<THREE.Texture>;
-    uProgress: THREE.IUniform<number>;
-  }>;
-}) {
+function Bottle() {
   const { scene } = useGLTF(MODEL_URL);
 
   const prepared = useMemo(() => {
-    const clone = scene.clone(true);
-
-    const box = new THREE.Box3().setFromObject(clone);
-    const size = box.getSize(new THREE.Vector3());
+    const clone  = scene.clone(true);
+    const box    = new THREE.Box3().setFromObject(clone);
+    const size   = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     clone.position.sub(center);
-
-    const targetHeight = 2.5;
-    const s = targetHeight / size.y;
-    clone.scale.setScalar(s);
+    clone.scale.setScalar(2.1 / size.y);
 
     clone.traverse((child) => {
       if (child instanceof THREE.Mesh) {
-        child.castShadow = true;
+        child.castShadow    = true;
         child.receiveShadow = true;
-        child.material = new THREE.ShaderMaterial({
-          uniforms: uniformsRef.current,
-          vertexShader,
-          fragmentShader,
-        });
+        const mat = child.material as THREE.MeshStandardMaterial;
+        if (mat && "roughness" in mat) {
+          mat.roughness       = Math.min(mat.roughness ?? 0.5, 0.30);
+          mat.envMapIntensity = 1.8;
+        }
       }
     });
 
     return clone;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene]);
 
   return <primitive object={prepared} />;
 }
 
 /* ------------------------------------------------------------------ */
-/* ScrollRig: scroll animation + continuous idle spin + wipe trigger  */
+/* ScrollRig                                                           */
 /* ------------------------------------------------------------------ */
 function ScrollRig() {
   const travel = useRef<THREE.Group>(null);
-  const spin = useRef<THREE.Group>(null);
-  const idle = useRef<THREE.Group>(null);
+  const spin   = useRef<THREE.Group>(null);
+  const idle   = useRef<THREE.Group>(null);
   const { viewport } = useThree();
-
-  const textures = useTexture(TEXTURE_URLS);
-
-  useMemo(() => {
-    textures.forEach((tex) => {
-      tex.flipY = false;
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
-      tex.needsUpdate = true;
-    });
-  }, [textures]);
-
-  // shared uniforms object — all ShaderMaterial instances reference this
-  const uniformsRef = useRef({
-    uTexA: { value: textures[0] },
-    uTexB: { value: textures[1] },
-    uProgress: { value: 0 as number },
-  });
-
-  const rotAccum = useRef(0);
-  const lapRef = useRef(0);
-  const isSwapping = useRef(false);
-  const currentTexIdx = useRef(0);
 
   const xSlot = Math.min(viewport.width * 0.24, 2.4);
 
@@ -144,12 +68,11 @@ function ScrollRig() {
         if (motionOff) return;
 
         const tl = gsap.timeline({
-          defaults: { ease: "none" },
           scrollTrigger: {
             trigger: "#scroll-wrap",
             start: "top top",
-            end: "bottom bottom",
-            scrub: 1,
+            end:   "bottom bottom",
+            scrub: 2,           // higher = smoother, more inertia feel
           },
         });
 
@@ -158,70 +81,50 @@ function ScrollRig() {
         const scl = travel.current!.scale;
 
         tl
-          .to(pos, { x: xSlot, duration: 1 }, 0)
-          .to(rot, { y: Math.PI * 2, duration: 1 }, 0)
-          .to(pos, { x: -xSlot, duration: 1 }, 1)
-          .to(rot, { y: Math.PI * 4, z: -0.16, duration: 1 }, 1)
-          .to(pos, { x: 0, y: 0.1, duration: 1 }, 2)
-          .to(rot, { y: Math.PI * 6, z: 0, duration: 1 }, 2)
-          .to(scl, { x: 1.12, y: 1.12, z: 1.12, duration: 1 }, 2);
+          // S1 → S2  bottle drifts right, full spin
+          .to(pos, { x: xSlot,  duration: 1, ease: "power2.inOut" }, 0)
+          .to(rot, { y: Math.PI * 2, duration: 1, ease: "power1.inOut" }, 0)
 
-        return () => {
-          tl.scrollTrigger?.kill();
-          tl.kill();
-        };
+          // S2 → S3  crosses to left, slight tilt
+          .to(pos, { x: -xSlot, duration: 1, ease: "power2.inOut" }, 1)
+          .to(rot, { y: Math.PI * 4, z: -0.18, duration: 1, ease: "power1.inOut" }, 1)
+
+          // S3 → S4  returns to centre, pops in scale
+          .to(pos, { x: 0, y: 0.15, duration: 1, ease: "power2.out" }, 2)
+          .to(rot, { y: Math.PI * 6, z: 0,  duration: 1, ease: "power1.inOut" }, 2)
+          .to(scl, { x: 1.15, y: 1.15, z: 1.15, duration: 0.6, ease: "back.out(1.4)" }, 2.4);
+
+        return () => { tl.scrollTrigger?.kill(); tl.kill(); };
       }
     );
 
     return () => mm.revert();
   }, [xSlot]);
 
-  useFrame(({ clock }, delta) => {
+  // gentle breathing bob
+  useFrame(({ clock }) => {
     if (!idle.current) return;
-
-    // continuous idle spin
-    rotAccum.current += delta * 0.65;
-    idle.current.rotation.y = rotAccum.current;
-
-    // gentle breathing bob
     const t = clock.getElapsedTime();
-    idle.current.position.y = Math.sin(t * 0.9) * 0.05;
-
-    // detect new lap → fire wipe animation
-    const currentLap = Math.floor(rotAccum.current / (Math.PI * 2));
-    if (currentLap > lapRef.current && !isSwapping.current) {
-      lapRef.current = currentLap;
-      isSwapping.current = true;
-
-      const nextIdx = 1 - currentTexIdx.current;
-      const u = uniformsRef.current;
-
-      // load the incoming texture into slot B and sweep progress 0→1
-      u.uTexB.value = textures[nextIdx];
-      u.uProgress.value = 0;
-
-      gsap.to(u.uProgress, {
-        value: 1,
-        duration: 0.75,
-        ease: "power2.inOut",
-        onComplete: () => {
-          // settle: A becomes the new texture, reset for next swap
-          u.uTexA.value = textures[nextIdx];
-          u.uProgress.value = 0;
-          currentTexIdx.current = nextIdx;
-          isSwapping.current = false;
-        },
-      });
-    }
+    idle.current.position.y = Math.sin(t * 0.85) * 0.06;
   });
 
   return (
     <group ref={travel}>
       <group ref={spin}>
-        <group ref={idle}>
-          <Float speed={1.4} rotationIntensity={0.08} floatIntensity={0.15}>
-            <Bottle uniformsRef={uniformsRef} />
-          </Float>
+        {/*
+          Start at a nice 3/4 product angle:
+          slight Y rotation shows the label face, tiny X tilt adds depth
+        */}
+        <group rotation={[0.04, -0.38, 0]}>
+          <group ref={idle}>
+            <Float
+              speed={1.8}
+              rotationIntensity={0.10}
+              floatIntensity={0.22}
+            >
+              <Bottle />
+            </Float>
+          </group>
         </group>
       </group>
     </group>
@@ -234,31 +137,51 @@ function ScrollRig() {
 function Studio() {
   return (
     <>
-      <ambientLight intensity={0.35} />
+      {/* studio HDR for clean material reflections */}
+      <Environment preset="studio" environmentIntensity={0.4} />
+
+      {/* low ambient — let the key light do the work */}
+      <ambientLight intensity={0.15} />
+
+      {/* KEY — pure white, upper-left front, tight beam */}
       <spotLight
-        position={[-4, 6, 5]}
-        angle={0.5}
-        penumbra={0.9}
-        intensity={140}
-        color="#fff1dc"
-        castShadow
-        shadow-mapSize={[1024, 1024]}
-      />
-      <spotLight
-        position={[5, 2.5, -4]}
-        angle={0.6}
-        penumbra={1}
+        position={[-2.5, 6, 5]}
+        angle={0.35}
+        penumbra={0.6}
         intensity={220}
-        color="#ff4d1c"
+        color="#ffffff"
+        castShadow
+        shadow-mapSize={[2048, 2048]}
+        shadow-bias={-0.0003}
       />
-      <pointLight position={[0, -2.5, 4]} intensity={18} color="#7fb2ff" />
-      <pointLight position={[-5, 0.5, -2]} intensity={30} color="#f2a33c" />
+
+      {/* FILL — opposite side, very soft so shadow side still readable */}
+      <pointLight position={[3, 1, 3]} intensity={18} color="#f0fff4" />
+
+      {/* RED RIM — behind-right, creates hot-sauce heat edge */}
+      <spotLight
+        position={[4, 2, -4]}
+        angle={0.5}
+        penumbra={1}
+        intensity={160}
+        color="#dc2626"
+      />
+
+      {/* GREEN KICKER — behind-left, brand identity edge */}
+      <spotLight
+        position={[-4, 1.5, -3]}
+        angle={0.5}
+        penumbra={1}
+        intensity={100}
+        color="#22c55e"
+      />
+
       <ContactShadows
-        position={[0, -1.7, 0]}
-        opacity={0.55}
-        scale={12}
-        blur={2.6}
-        far={3}
+        position={[0, -1.6, 0]}
+        opacity={0.45}
+        scale={10}
+        blur={2.5}
+        far={3.5}
         color="#000000"
       />
     </>
@@ -272,8 +195,9 @@ export default function Experience() {
       <Canvas
         shadows
         dpr={[1, 2]}
-        camera={{ position: [0, 0.2, 6.2], fov: 40 }}
-        gl={{ antialias: true, alpha: true }}
+        /* slightly higher camera + tighter FOV = compressed, dramatic product look */
+        camera={{ position: [0, 0.6, 5.5], fov: 38 }}
+        gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
       >
         <Suspense fallback={null}>
           <Studio />

@@ -3,19 +3,20 @@
 import dynamic from "next/dynamic";
 import Sections from "@/components/Sections";
 
-const GLOWS = [
-  "radial-gradient(60% 60% at 50% 55%, rgba(255,77,28,0.22) 0%, rgba(20,13,9,0) 70%)",
-  "radial-gradient(55% 60% at 72% 50%, rgba(92,138,58,0.20) 0%, rgba(20,13,9,0) 70%)",
-  "radial-gradient(55% 60% at 28% 50%, rgba(217,43,4,0.26) 0%, rgba(20,13,9,0) 70%)",
-  "radial-gradient(60% 60% at 50% 50%, rgba(242,163,60,0.22) 0%, rgba(20,13,9,0) 70%)",
+// solid flat fills — one per section, no gradient
+const BG_COLORS = [
+  "#22c55e",  // S0 hero    — brand green
+  "#f97316",  // S1 details — vivid orange
+  "#22c55e",  // S2 heat    — brand green
+  "#facc15",  // S3 CTA     — golden yellow
 ];
 
 const Experience = dynamic(() => import("@/components/Experience"), {
   ssr: false,
   loading: () => (
-    <div className="fixed inset-0 z-10 grid place-items-center bg-char">
-      <span className="font-display text-sm tracking-[0.4em] text-ember">
-        POURING…
+    <div className="fixed inset-0 z-10 grid place-items-center" style={{ background: "transparent" }}>
+      <span className="font-display text-sm tracking-[0.4em] text-gray-900">
+        LOADING…
       </span>
     </div>
   ),
@@ -26,12 +27,13 @@ export default function Home() {
     <main id="scroll-wrap" className="relative w-screen">
       {/* section color glows — sit under the 3D layer */}
       <div className="pointer-events-none fixed inset-0 z-0">
-        {GLOWS.map((bg, i) => (
+        {BG_COLORS.map((color, i) => (
           <div
             key={i}
             data-glow={i}
-            className="absolute inset-0 opacity-0"
-            style={{ background: bg }}
+            className="absolute inset-0"
+            // S0 starts fully visible so yellow shows instantly — no black flash
+            style={{ background: color, opacity: i === 0 ? 1 : 0 }}
           />
         ))}
       </div>
