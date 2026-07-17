@@ -24,7 +24,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="grain antialiased">{children}</body>
+      <body className="grain antialiased" suppressHydrationWarning>{children}</body>
     </html>
   );
 }

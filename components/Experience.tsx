@@ -54,12 +54,13 @@ function ScrollRig() {
 
   // Bottle 2 — sits fixed on the right, visible only in the split-showcase section
   const b2      = useRef<THREE.Group>(null);
+  const spin2   = useRef<THREE.Group>(null);
 
   const { viewport } = useThree();
   const xSlot = Math.min(viewport.width * 0.24, 2.4);
 
   useLayoutEffect(() => {
-    if (!travel1.current || !spin1.current || !b2.current) return;
+    if (!travel1.current || !spin1.current || !b2.current || !spin2.current) return;
 
     const mm = gsap.matchMedia();
     mm.add(
@@ -124,8 +125,9 @@ function ScrollRig() {
           //   bottle 2 slides from behind (left → right), fading in
           .to(pos,                  { x: -xSlot, y: 0, duration: 1, ease: "power2.out"    }, 2)
           .to(rot,                  { y: Math.PI * 6, z: 0, duration: 1, ease: "power1.inOut" }, 2)
-          .to(b2.current!.position, { x: xSlot, duration: 0.9, ease: "power2.inOut"       }, 2.05)
-          .to(op2, { v: 1, duration: 0.5, ease: "power2.out", onUpdate: applyOp           }, 2.05)
+          .to(b2.current!.position, { x: xSlot,       duration: 0.9, ease: "power2.inOut" }, 2.05)
+          .to(spin2.current!.rotation, { y: Math.PI * 2, duration: 0.9, ease: "power1.inOut" }, 2.05)
+          .to(op2, { v: 1,             duration: 0.5, ease: "power2.out", onUpdate: applyOp }, 2.05)
 
           // Beat 3 — S3→S4: bottle 2 fades out in place; bottle 1 sweeps to centre (no overlaps)
           .to(op2, { v: 0, duration: 0.45, ease: "power2.in", onUpdate: applyOp           }, 3)
@@ -163,10 +165,12 @@ function ScrollRig() {
 
       {/* Bottle 2 — fixed right, scale-in on split section, scale-out on CTA */}
       <group ref={b2}>
-        <group rotation={[0.04, 0.38, 0]}>
-          <Float speed={1.8} rotationIntensity={0.10} floatIntensity={0.22}>
-            <Bottle />
-          </Float>
+        <group ref={spin2}>
+          <group rotation={[0.04, 0.38, 0]}>
+            <Float speed={1.8} rotationIntensity={0.10} floatIntensity={0.22}>
+              <Bottle />
+            </Float>
+          </group>
         </group>
       </group>
     </>
