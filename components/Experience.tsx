@@ -3,7 +3,7 @@
 import { Suspense, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useGLTF, ContactShadows, Float, Environment } from "@react-three/drei";
+import { useGLTF, Float, Environment, ContactShadows } from "@react-three/drei";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -47,15 +47,19 @@ function Bottle() {
 /* ScrollRig                                                           */
 /* ------------------------------------------------------------------ */
 function ScrollRig() {
-  const travel = useRef<THREE.Group>(null);
-  const spin   = useRef<THREE.Group>(null);
-  const idle   = useRef<THREE.Group>(null);
-  const { viewport } = useThree();
+  // Bottle 1 — travels throughout all sections
+  const travel1 = useRef<THREE.Group>(null);
+  const spin1   = useRef<THREE.Group>(null);
+  const idle1   = useRef<THREE.Group>(null);
 
+  // Bottle 2 — sits fixed on the right, visible only in the split-showcase section
+  const b2      = useRef<THREE.Group>(null);
+
+  const { viewport } = useThree();
   const xSlot = Math.min(viewport.width * 0.24, 2.4);
 
   useLayoutEffect(() => {
-    if (!travel.current || !spin.current) return;
+    if (!travel1.current || !spin1.current || !b2.current) return;
 
     const mm = gsap.matchMedia();
     mm.add(
@@ -67,32 +71,67 @@ function ScrollRig() {
         const { motionOff } = ctx.conditions as { motionOff: boolean };
         if (motionOff) return;
 
+        // Clone materials on bottle 2 so they are independent from bottle 1's shared materials
+        const b2Mats: THREE.MeshStandardMaterial[] = [];
+        b2.current.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
+            mat.transparent = true;
+            mat.opacity = 0;
+            mesh.material = mat;   // replace shared ref with own copy
+            b2Mats.push(mat);
+          }
+        });
+
+        // Proxy tweened by GSAP; onUpdate pushes value to all materials
+        const op2 = { v: 0 };
+        // Toggle visible so bottle 2 casts zero shadow outside section 3
+        const applyOp = () => {
+          b2Mats.forEach((m) => { m.opacity = op2.v; });
+          if (b2.current) b2.current.visible = op2.v > 0;
+        };
+        // Start fully hidden — no geometry, no shadow
+        if (b2.current) b2.current.visible = false;
+
+        // Bottle 2: starts at centre, invisible
+        gsap.set(b2.current!.position, { x: 0, z: 0 });
+        gsap.set(b2.current!.scale,    { x: 0.88, y: 0.88, z: 0.88 });
+
         const tl = gsap.timeline({
           scrollTrigger: {
             trigger: "#scroll-wrap",
             start: "top top",
             end:   "bottom bottom",
-            scrub: 2,           // higher = smoother, more inertia feel
+            scrub: 2,
           },
         });
 
-        const pos = travel.current!.position;
-        const rot = spin.current!.rotation;
-        const scl = travel.current!.scale;
+        const pos = travel1.current!.position;
+        const rot = spin1.current!.rotation;
+        const scl = travel1.current!.scale;
 
         tl
-          // S1 → S2  bottle drifts right, full spin
-          .to(pos, { x: xSlot,  duration: 1, ease: "power2.inOut" }, 0)
+          // Beat 0 — S0→S1: drift right, full spin
+          .to(pos, { x:  xSlot, duration: 1, ease: "power2.inOut" }, 0)
           .to(rot, { y: Math.PI * 2, duration: 1, ease: "power1.inOut" }, 0)
 
-          // S2 → S3  crosses to left, slight tilt
+          // Beat 1 — S1→S2: cross to left, slight tilt
           .to(pos, { x: -xSlot, duration: 1, ease: "power2.inOut" }, 1)
           .to(rot, { y: Math.PI * 4, z: -0.18, duration: 1, ease: "power1.inOut" }, 1)
 
-          // S3 → S4  returns to centre, pops in scale
-          .to(pos, { x: 0, y: 0.15, duration: 1, ease: "power2.out" }, 2)
-          .to(rot, { y: Math.PI * 6, z: 0,  duration: 1, ease: "power1.inOut" }, 2)
-          .to(scl, { x: 1.15, y: 1.15, z: 1.15, duration: 0.6, ease: "back.out(1.4)" }, 2.4);
+          // Beat 2 — S2→S3: bottle 1 holds left & straightens;
+          //   bottle 2 slides from behind (left → right), fading in
+          .to(pos,                  { x: -xSlot, y: 0, duration: 1, ease: "power2.out"    }, 2)
+          .to(rot,                  { y: Math.PI * 6, z: 0, duration: 1, ease: "power1.inOut" }, 2)
+          .to(b2.current!.position, { x: xSlot, duration: 0.9, ease: "power2.inOut"       }, 2.05)
+          .to(op2, { v: 1, duration: 0.5, ease: "power2.out", onUpdate: applyOp           }, 2.05)
+
+          // Beat 3 — S3→S4: bottle 2 fades out in place; bottle 1 sweeps to centre (no overlaps)
+          .to(op2, { v: 0, duration: 0.45, ease: "power2.in", onUpdate: applyOp           }, 3)
+          .to(pos, { x: 0, y: 0.15,    duration: 0.65, ease: "power2.out"                 }, 3.5)
+          .to(rot, { y: Math.PI * 8, z: 0, duration: 0.65, ease: "power1.inOut"           }, 3.5)
+          .to(scl, { x: 1.15, y: 1.15, z: 1.15, duration: 0.35, ease: "back.out(1.4)"    }, 3.75);
 
         return () => { tl.scrollTrigger?.kill(); tl.kill(); };
       }
@@ -101,33 +140,36 @@ function ScrollRig() {
     return () => mm.revert();
   }, [xSlot]);
 
-  // gentle breathing bob
   useFrame(({ clock }) => {
-    if (!idle.current) return;
     const t = clock.getElapsedTime();
-    idle.current.position.y = Math.sin(t * 0.85) * 0.06;
+    if (idle1.current) idle1.current.position.y = Math.sin(t * 0.85) * 0.06;
+    if (b2.current) b2.current.position.y = Math.sin(t * 0.85 + 1.1) * 0.06;
   });
 
   return (
-    <group ref={travel}>
-      <group ref={spin}>
-        {/*
-          Start at a nice 3/4 product angle:
-          slight Y rotation shows the label face, tiny X tilt adds depth
-        */}
-        <group rotation={[0.04, -0.38, 0]}>
-          <group ref={idle}>
-            <Float
-              speed={1.8}
-              rotationIntensity={0.10}
-              floatIntensity={0.22}
-            >
-              <Bottle />
-            </Float>
+    <>
+      {/* Bottle 1 — animated across all sections */}
+      <group ref={travel1}>
+        <group ref={spin1}>
+          <group rotation={[0.04, -0.38, 0]}>
+            <group ref={idle1}>
+              <Float speed={1.8} rotationIntensity={0.10} floatIntensity={0.22}>
+                <Bottle />
+              </Float>
+            </group>
           </group>
         </group>
       </group>
-    </group>
+
+      {/* Bottle 2 — fixed right, scale-in on split section, scale-out on CTA */}
+      <group ref={b2}>
+        <group rotation={[0.04, 0.38, 0]}>
+          <Float speed={1.8} rotationIntensity={0.10} floatIntensity={0.22}>
+            <Bottle />
+          </Float>
+        </group>
+      </group>
+    </>
   );
 }
 
@@ -178,10 +220,10 @@ function Studio() {
 
       <ContactShadows
         position={[0, -1.6, 0]}
-        opacity={0.45}
-        scale={10}
-        blur={2.5}
-        far={3.5}
+        opacity={0.35}
+        scale={12}
+        blur={3}
+        far={4}
         color="#000000"
       />
     </>
@@ -191,7 +233,7 @@ function Studio() {
 /* ------------------------------------------------------------------ */
 export default function Experience() {
   return (
-    <div className="fixed inset-0 z-10 h-screen w-screen">
+    <div className="pointer-events-none fixed inset-0 z-30 h-screen w-screen">
       <Canvas
         shadows
         dpr={[1, 2]}

@@ -8,7 +8,8 @@ const BG_COLORS = [
   "#22c55e",  // S0 hero    — brand green
   "#f97316",  // S1 details — vivid orange
   "#22c55e",  // S2 heat    — brand green
-  "#facc15",  // S3 CTA     — golden yellow
+  "#dc2626",  // S3 split   — chili red
+  "#facc15",  // S4 CTA     — golden yellow
 ];
 
 const Experience = dynamic(() => import("@/components/Experience"), {

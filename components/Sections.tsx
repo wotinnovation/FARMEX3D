@@ -231,9 +231,276 @@ export default function Sections() {
         </div>
       </section>
 
-      {/* ============ SECTION 4 — CTA =============================== */}
+      {/* ============ SECTION 4 — SPLIT SHOWCASE ==================== */}
       <section
         data-section="3"
+        className="relative flex h-screen w-screen items-stretch overflow-hidden"
+        style={{ background: "transparent" }}
+      >
+        {/* ghost bgword */}
+        <div
+          data-bgword
+          className="outline-word outline-word--ember pointer-events-none text-[5.5vw] leading-tight"
+          style={ghostStyle}
+        >
+          TWO&nbsp;BOTTLES&nbsp;·&nbsp;ONE&nbsp;FARM&nbsp;·&nbsp;SPLIT&nbsp;BATCH&nbsp;·&nbsp;DOUBLE&nbsp;BURN&nbsp;·&nbsp;FIRE&nbsp;LEFT&nbsp;·&nbsp;FIRE&nbsp;RIGHT&nbsp;·&nbsp;BOTH&nbsp;SIDES
+        </div>
+
+        {/* ── red backdrop ── */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "#dc2626" }}
+        />
+
+        {/* scanline texture */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.012) 3px, rgba(255,255,255,0.012) 4px)",
+            zIndex: 1,
+          }}
+        />
+
+        {/* ── LEFT CARD — ORIGINAL ── */}
+        <div
+          data-panel
+          className="relative z-10 flex flex-1 flex-col items-start justify-end pb-[12vh] pl-[7vw]"
+        >
+          <span
+            className="font-body text-[10px] uppercase tracking-[0.55em]"
+            style={{ color: "rgba(134,239,172,0.6)" }}
+          >
+            Bottle A
+          </span>
+          <h3
+            className="mt-2 font-display text-4xl md:text-6xl"
+            style={{
+              color: "#e2fde9",
+              textShadow: "0 0 40px rgba(34,197,94,0.45)",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            ORIGINAL
+          </h3>
+          <p
+            className="mt-3 max-w-[220px] font-body text-sm leading-relaxed"
+            style={{ color: "rgba(187,247,208,0.55)" }}
+          >
+            The one that started it all. Slow-fermented. Fire-kissed. Zero regrets.
+          </p>
+
+          {/* stat pills */}
+          <div className="mt-7 flex flex-col gap-2">
+            {[
+              { label: "Scoville", value: "62 K" },
+              { label: "Ferment", value: "21 d" },
+              { label: "Batch", value: "#14" },
+            ].map(({ label, value }) => (
+              <div
+                key={label}
+                className="flex items-center gap-3 rounded-full px-4 py-1.5"
+                style={{
+                  background: "rgba(34,197,94,0.10)",
+                  border: "1px solid rgba(34,197,94,0.22)",
+                  backdropFilter: "blur(6px)",
+                }}
+              >
+                <span
+                  className="font-display text-base"
+                  style={{ color: "#86efac" }}
+                >
+                  {value}
+                </span>
+                <span
+                  className="font-body text-[10px] uppercase tracking-[0.3em]"
+                  style={{ color: "rgba(134,239,172,0.5)" }}
+                >
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── CENTRE DIVIDER ── */}
+        <div className="relative z-20 flex flex-col items-center justify-center">
+          {/* glowing vertical line */}
+          <div
+            style={{
+              width: "1px",
+              height: "100%",
+              position: "absolute",
+              top: 0,
+              background:
+                "linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.18) 25%, rgba(255,255,255,0.38) 50%, rgba(255,255,255,0.18) 75%, transparent 100%)",
+              boxShadow: "0 0 18px 3px rgba(255,255,255,0.08)",
+            }}
+          />
+
+          {/* centre badge */}
+          <div
+            data-panel
+            className="relative flex flex-col items-center gap-3 px-2"
+          >
+            <div
+              className="flex h-16 w-16 items-center justify-center rounded-full font-display text-lg"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.14)",
+                color: "#ffffff",
+                boxShadow:
+                  "0 0 0 6px rgba(255,255,255,0.04), 0 0 30px rgba(255,255,255,0.08)",
+              }}
+            >
+              VS
+            </div>
+            {/* bundle pill */}
+            <div
+              className="rounded-full px-4 py-2 text-center"
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                backdropFilter: "blur(10px)",
+              }}
+            >
+              <p
+                className="font-display text-2xl"
+                style={{ color: "#fde68a" }}
+              >
+                –20%
+              </p>
+              <p
+                className="font-body text-[9px] uppercase tracking-[0.35em]"
+                style={{ color: "rgba(253,230,138,0.55)" }}
+              >
+                Bundle
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── RIGHT CARD — SCORCHED ── */}
+        <div
+          data-panel
+          className="relative z-10 flex flex-1 flex-col items-end justify-end pb-[12vh] pr-[7vw] text-right"
+        >
+          <span
+            className="font-body text-[10px] uppercase tracking-[0.55em]"
+            style={{ color: "rgba(252,165,165,0.6)" }}
+          >
+            Bottle B
+          </span>
+          <h3
+            className="mt-2 font-display text-4xl md:text-6xl"
+            style={{
+              color: "#fff1f2",
+              textShadow: "0 0 40px rgba(220,38,38,0.5)",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            SCORCHED
+          </h3>
+          <p
+            className="mt-3 max-w-[220px] font-body text-sm leading-relaxed"
+            style={{ color: "rgba(254,202,202,0.55)" }}
+          >
+            Extra-roasted habanero. No mercy. No filter. Built for the drawer you never open.
+          </p>
+
+          {/* stat pills */}
+          <div className="mt-7 flex flex-col items-end gap-2">
+            {[
+              { label: "Scoville", value: "98 K" },
+              { label: "Roast", value: "2× " },
+              { label: "Batch", value: "#14" },
+            ].map(({ label, value }) => (
+              <div
+                key={label}
+                className="flex items-center gap-3 rounded-full px-4 py-1.5"
+                style={{
+                  background: "rgba(220,38,38,0.10)",
+                  border: "1px solid rgba(220,38,38,0.22)",
+                  backdropFilter: "blur(6px)",
+                }}
+              >
+                <span
+                  className="font-body text-[10px] uppercase tracking-[0.3em]"
+                  style={{ color: "rgba(252,165,165,0.5)" }}
+                >
+                  {label}
+                </span>
+                <span
+                  className="font-display text-base"
+                  style={{ color: "#fca5a5" }}
+                >
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── TOP HEADLINE (centred, above the bottles) ── */}
+        <div
+          data-panel
+          className="pointer-events-none absolute inset-x-0 top-[10vh] z-20 flex flex-col items-center"
+        >
+          <p
+            className="font-body text-[10px] uppercase tracking-[0.55em]"
+            style={{ color: "rgba(255,255,255,0.35)" }}
+          >
+            03 — The Pair
+          </p>
+          <h2
+            className="mt-3 font-display text-3xl md:text-5xl"
+            style={{
+              color: "#ffffff",
+              textShadow:
+                "0 0 60px rgba(255,255,255,0.15)",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            TWO BOTTLES,&nbsp;
+            <span style={{ color: "#fde68a", textShadow: "0 0 40px rgba(253,230,138,0.4)" }}>
+              ONE FIRE
+            </span>
+          </h2>
+        </div>
+
+        {/* ── BOTTOM CTA row ── */}
+        <div
+          data-panel
+          className="pointer-events-none absolute inset-x-0 bottom-[7vh] z-20 flex items-center justify-center gap-6"
+        >
+          <button
+            className="pointer-events-auto rounded-full font-display text-sm tracking-wide transition-transform hover:scale-105 active:scale-95"
+            style={{
+              background: "linear-gradient(135deg, #22c55e, #16a34a)",
+              color: "#020c04",
+              padding: "14px 32px",
+              boxShadow: "0 0 24px rgba(34,197,94,0.35)",
+            }}
+          >
+            GRAB THE PAIR — $24
+          </button>
+          <button
+            className="pointer-events-auto rounded-full font-body text-sm transition-colors"
+            style={{
+              border: "1px solid rgba(255,255,255,0.18)",
+              color: "rgba(255,255,255,0.6)",
+              padding: "14px 32px",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            Compare singles
+          </button>
+        </div>
+      </section>
+
+      {/* ============ SECTION 5 — CTA =============================== */}
+      <section
+        data-section="4"
         className="relative flex h-screen w-screen items-end justify-center overflow-hidden pb-[9vh]"
       >
         <div
@@ -246,7 +513,7 @@ export default function Sections() {
 
         <div className="relative z-10 text-center">
           <p data-panel className="font-body text-xs uppercase tracking-[0.5em] text-amber-700">
-            03 — Batch №14 · 480 bottles
+            04 — Batch №14 · 480 bottles
           </p>
           <h2 data-panel className="mt-3 font-display text-4xl leading-none text-gray-900 md:text-6xl">
             TAKE ONE HOME
